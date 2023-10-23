@@ -9,6 +9,7 @@ my %WriteMakefileArgs = (
     VERSION_FROM     => 'lib/NHL/API.pm',
     ABSTRACT_FROM    => 'lib/NHL/API.pm',
     LICENSE          => 'artistic_2',
+    EXE_FILES        => ['bin/nhl-game-alert'],
     MIN_PERL_VERSION => '5.006',
     META_MERGE => {
         'meta-spec' => { version => 2 },
@@ -30,8 +31,12 @@ my %WriteMakefileArgs = (
         'Test::More' => '0',
     },
     PREREQ_PM => {
-        #'ABC'              => '1.6',
-        #'Foo::Bar::Module' => '5.0401',
+        'Carp'                          => 0,
+        'DateTime'                      => 0,
+        'DateTime::Format::ISO8601'     => 0,
+        'HTTP::Request'                 => 0,
+        'JSON'                          => 0,
+        'LWP::UserAgent'                => 0,
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'NHL-API-*' },
