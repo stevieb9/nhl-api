@@ -131,7 +131,7 @@ sub _cache_flush {
 sub help {
     print <<EOF;
 
-Usage: game_alert <OPTIONS>
+Usage: nhl-game-alert <OPTIONS>
 
 Options:
 
