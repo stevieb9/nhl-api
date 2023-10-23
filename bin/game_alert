@@ -37,9 +37,6 @@ my $nhl = NHL::API->new;
 
 my $date = strftime("%Y-%m-%d", localtime);
 
-print Dumper \@teams;
-#print Dumper $sent_cache;
-
 for my $team (@teams) {
 
     my $game_time = $nhl->game_time($team);
