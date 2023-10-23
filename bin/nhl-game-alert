@@ -136,9 +136,9 @@ Usage: nhl-game-alert <OPTIONS>
 Options:
 
 -h | --help         Print this help message
--a | --alert        Mandatory, List: Minutes before game to alert at. Can be supplied multiple times
--a | --recipient    Mandatory, List: Email address to send the alert to. Can be supplied multiple times
--a | --team         Mandatory, List: Team you want to check for. Can be supplied multiple times
+-a | --alert        Mandatory, Strings: Minutes before game to alert at. Can be supplied multiple times
+-a | --recipient    Mandatory, Strings: Email address to send the alert to. Can be supplied multiple times
+-a | --team         Mandatory, Strings: Team you want to check for. Can be supplied multiple times
 
 EOF
 
