@@ -95,6 +95,7 @@ sub game_time {
         }
     }
 
+    # This does nothing; we don't return the DateTime object!
     if ($game_time) {
         my $dt = DateTime::Format::ISO8601->parse_datetime($game_time);
         $dt->set_time_zone('America/Vancouver');

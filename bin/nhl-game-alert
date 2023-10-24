@@ -5,19 +5,42 @@ use strict;
 
 use Data::Dumper;
 use DateTime::Format::ISO8601;
+use File::HomeDir;
 use Getopt::Long qw(:config no_ignore_case);
 use IPC::Shareable;
+use JSON;
 use Net::SMTP;
 use NHL::API;
 use POSIX qw(strftime);
 
-my ($help, @alert_times, @recipients, @teams);
+my ($home_dir, %google_api);
+
+BEGIN {
+    $home_dir = File::HomeDir->my_home;
+
+    {
+        local $/;
+        open my $google_api_fh, '<', "$home_dir/google_api.json" or die $!;
+
+        my $data = decode_json <$google_api_fh>;
+
+        $google_api{email} = $data->{google_api_email};
+        $google_api{key} = $data->{google_api_key};
+    }
+
+    if (! $google_api{email}) {
+        die "Google API file can't be found or opened";
+    }
+}
+
+my ($help, @alert_times, @recipients, @teams, $cache_reset);
 
 GetOptions(
     "help|h"        => \$help,
     "alert|a=s"     => \@alert_times,
     "recipient|r=s" => \@recipients,
     "team|t=s"      => \@teams,
+    "cache|c"       => \$cache_reset,
 );
 
 help() if ! scalar @alert_times;
@@ -25,11 +48,10 @@ help() if ! scalar @recipients;
 help() if ! scalar @teams;
 
 tie my %sent_cache, 'IPC::Shareable', {
-    key => 'NHL GAME ALERTS SENT',
-    create => 1
+    key     => 'NHL GAME ALERTS SENT',
+    create  => 1,
+    tidy    => 1,
 };
-
-#_cache_flush();
 
 my $nhl = NHL::API->new;
 
@@ -43,17 +65,27 @@ for my $team (@teams) {
     next if ! $game_time;
 
     my $dt_now = DateTime->now;
+    $dt_now->set_time_zone('America/Vancouver');
+
     my $dt_game = DateTime::Format::ISO8601->parse_datetime($game_time);
+    $dt_game->set_time_zone('America/Vancouver');
 
     if ($dt_game > $dt_now) {
         my $until_game_dt = $dt_game - $dt_now;
         my $minutes_to_game = $until_game_dt->in_units('minutes');
 
         for my $alert_time (@alert_times) {
+            if ($cache_reset) {
+                _cache_reset($team, $date, $alert_time);
+                next;
+            }
+
             if ($minutes_to_game < $alert_time) {
                 if (! alert_sent($team, $date, $alert_time)) {
-                    my $message = "$team is playing in less than $alert_time minutes";
+                    my $message_game_date = $dt_game->strftime("%Y-%m-%d %H%M");
+                    my $message = "$team are playing in less than $alert_time minutes at $message_game_date hrs";
                     print "$message\n";
+
                     for (@recipients) {
                         send_message($_, $message);
                     }
@@ -97,8 +129,8 @@ sub send_message {
     # Password here is an app password. Need to enable 2FA on Google
     # account to generate one
 
-    $smtp->auth($ENV{GOOGLE_API_EMAIL}, $ENV{GOOGLE_API_KEY}) or die;
-    $smtp->mail($ENV{GOOGLE_API_EMAIL});
+    $smtp->auth($google_api{email}, $google_api{key}) or die;
+    $smtp->mail($google_api{email});
     $smtp->to($recipient);
     $smtp->data();
     $smtp->datasend($message);
@@ -112,17 +144,16 @@ sub _cache_get {
 sub _cache_set {
     my ($team, $date, $alert_time) = @_;
 
-    $sent_cache{$team}{$alert_time} = {
-        date       => $date,
-        sent       => 1
-    };
+    $sent_cache{$team}{$alert_time}{date} = $date;
+    $sent_cache{$team}{$alert_time}{sent} = 1;
 }
 sub _cache_reset {
     my ($team, $date, $alert_time) = @_;
-    $sent_cache{$team}{$alert_time} = {
-        date       => $date,
-        sent       => 0
-    };
+
+    if (exists $sent_cache{$team}) {
+        $sent_cache{$team}{$alert_time}{date} = $date;
+        $sent_cache{$team}{$alert_time}{sent} = 0;
+    }
 }
 sub _cache_flush {
     %sent_cache = ();
@@ -139,6 +170,7 @@ Options:
 -a | --alert        Mandatory, Strings: Minutes before game to alert at. Can be supplied multiple times
 -a | --recipient    Mandatory, Strings: Email address to send the alert to. Can be supplied multiple times
 -a | --team         Mandatory, Strings: Team you want to check for. Can be supplied multiple times
+-c | --cache        Reset the cache that stores whether we've sent alerts or not
 
 EOF
 
