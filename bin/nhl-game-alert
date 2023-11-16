@@ -9,10 +9,16 @@ use File::HomeDir;
 use Getopt::Long qw(:config no_ignore_case);
 use IPC::Shareable;
 use JSON;
-use Net::SMTP;
 use NHL::API;
 use POSIX qw(strftime);
 use SMS::Send;
+
+# Twilio API config format (~/twilio_api.json)
+# {
+#     "_accountsid": "Twilio Account ID hash",
+#     "_authtoken": "Twilio Auth Token hash",
+#     "_from": "+Your Twilio Phone number"
+# }
 
 my ($home_dir, $twilio_sender);
 

@@ -38,7 +38,6 @@ my %WriteMakefileArgs = (
         'HTTP::Request'                 => 0,
         'JSON'                          => 0,
         'LWP::UserAgent'                => 0,
-        'SMS::Send::Twilio'             => 0,
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'NHL-API-*' },
