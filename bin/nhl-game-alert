@@ -12,24 +12,28 @@ use JSON;
 use Net::SMTP;
 use NHL::API;
 use POSIX qw(strftime);
+use SMS::Send;
 
-my ($home_dir, %google_api);
+my ($home_dir, $twilio_sender);
 
 BEGIN {
     $home_dir = File::HomeDir->my_home;
 
+    # Twilio API creds
     {
         local $/;
-        open my $google_api_fh, '<', "$home_dir/google_api.json" or die $!;
 
-        my $data = decode_json <$google_api_fh>;
+        open my $twilio_conf, '<', "$home_dir/twilio_api.json" or die
+            "Can't open '$home_dir/twilio_api.json' to get API creds...";
 
-        $google_api{email} = $data->{google_api_email};
-        $google_api{key} = $data->{google_api_key};
-    }
+        my $json = <$twilio_conf>;
 
-    if (! $google_api{email}) {
-        die "Google API file can't be found or opened";
+        my $twilio_api_creds = decode_json $json;
+
+        $twilio_sender = SMS::Send->new(
+            'Twilio',
+            %$twilio_api_creds
+        )
     }
 }
 
@@ -117,24 +121,18 @@ sub alert_sent {
 sub send_message {
     my ($recipient, $message) = @_;
 
-    my $smtp = Net::SMTP->new(
-        'smtp.gmail.com',
-        Hello => 'local.example.com',
-        Timeout => 30,
-        Debug   => 0,
-        SSL     => 1,
-        Port    => 465
+    if ($recipient !~ /^\+/) {
+        $recipient = '+' . $recipient;
+    }
+
+    my $sent = $twilio_sender->send_sms(
+        text => $message,
+        to   => $recipient
     );
 
-    # Password here is an app password. Need to enable 2FA on Google
-    # account to generate one
-
-    $smtp->auth($google_api{email}, $google_api{key}) or die;
-    $smtp->mail($google_api{email});
-    $smtp->to($recipient);
-    $smtp->data();
-    $smtp->datasend($message);
-    $smtp->quit();
+    if (! $sent) {
+        warn "Couldn't send NHL alert to '$recipient'\n";
+    }
 }
 
 sub _cache_get {
@@ -158,6 +156,12 @@ sub _cache_reset {
 sub _cache_flush {
     %sent_cache = ();
 }
+sub _twilio_creds {
+    my ($self) = @_;
+
+
+
+}
 
 sub help {
     print <<EOF;
@@ -168,8 +172,8 @@ Options:
 
 -h | --help         Print this help message
 -a | --alert        Mandatory, Strings: Minutes before game to alert at. Can be supplied multiple times
--a | --recipient    Mandatory, Strings: Email address to send the alert to. Can be supplied multiple times
--a | --team         Mandatory, Strings: Team you want to check for. Can be supplied multiple times
+-r | --recipient    Mandatory, Strings: Email address to send the alert to. Can be supplied multiple times
+-t | --team         Mandatory, Strings: Team you want to check for. Can be supplied multiple times
 -c | --cache        Reset the cache that stores whether we've sent alerts or not
 
 EOF
