@@ -162,12 +162,6 @@ sub _cache_reset {
 sub _cache_flush {
     %sent_cache = ();
 }
-sub _twilio_creds {
-    my ($self) = @_;
-
-
-
-}
 
 sub help {
     print <<EOF;
