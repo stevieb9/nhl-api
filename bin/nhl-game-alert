@@ -187,6 +187,7 @@ Options:
 -r | --recipient    Mandatory, Strings: Country code plus phone number to send the alert to. Can be supplied multiple times
 -t | --team         Mandatory, Strings: Team you want to check for. Can be supplied multiple times
 -c | --cache        Reset the cache that stores whether we've sent alerts or not
+-s | --shm          Print the details of the shared memory object to STDOUT in JSON format
 
 EOF
 
