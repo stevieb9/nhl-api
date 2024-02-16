@@ -54,9 +54,11 @@ GetOptions(
     "shm|s"         => \$display_shm,
 );
 
-help() if ! scalar @alert_times;
-help() if ! scalar @recipients;
-help() if ! scalar @teams;
+if (! $display_shm) {
+    help() if ! scalar @alert_times;
+    help() if ! scalar @recipients;
+    help() if ! scalar @teams;
+}
 
 my $shm = tie my %sent_cache, 'IPC::Shareable', {
     key     => 'NHL GAME ALERTS SENT',
@@ -65,7 +67,10 @@ my $shm = tie my %sent_cache, 'IPC::Shareable', {
 };
 
 if ($display_shm) {
-    print Dumper $shm;
+    my $json = JSON->new;
+    $json->convert_blessed(1);
+    print $json->pretty->encode($shm);
+    exit;
 }
 
 my $nhl = NHL::API->new;
