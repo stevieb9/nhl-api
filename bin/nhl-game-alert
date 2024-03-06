@@ -80,8 +80,8 @@ my $nhl = NHL::API->new;
 my $date = strftime("%Y-%m-%d", localtime);
 
 for my $team (@teams) {
-
     my $game_time = $nhl->game_time($team);
+
     next if ! $game_time;
 
     my $dt_now = DateTime->now;
@@ -102,8 +102,13 @@ for my $team (@teams) {
 
             if ($minutes_to_game < $alert_time) {
                 if (! alert_sent($team, $date, $alert_time)) {
+                    my $opponent = $nhl->opponent($team);
+                    my $game_location = $nhl->game_location($team);
                     my $message_game_date = $dt_game->strftime("%Y-%m-%d %H%M");
-                    my $message = "$team are playing in less than $alert_time minutes at $message_game_date hrs";
+                    my $message = sprintf(
+                        "$team is playing $opponent in $game_location in less than " .
+                        "$alert_time minutes at $message_game_date hrs",
+                    );
                     print "$message\n";
 
                     for (@recipients) {

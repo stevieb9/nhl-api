@@ -79,6 +79,32 @@ sub teams {
 
     return $self->{teams};
 }
+sub game_location {
+    my ($self, $team_name) = @_;
+
+    my $game_data = $self->_today_game($team_name);
+    my $game_location = $game_data->{homeTeam}{placeName}{default};
+    return $game_location;
+}
+sub opponent {
+    my ($self, $team_name) = @_;
+
+    my $game_data = $self->_today_game($team_name);
+    my $opponent_abbr;
+
+    if ($game_data) {
+        my $team_abbr = $self->team_abbr($team_name);
+
+        if ($game_data->{homeTeam}{abbrev} ne $team_abbr) {
+            $opponent_abbr = $game_data->{homeTeam}{abbrev};
+        }
+        else {
+            $opponent_abbr = $game_data->{awayTeam}{abbrev};
+        }
+    }
+
+    return $self->team_abbr_to_name($opponent_abbr);
+}
 sub team_abbr_to_name {
     my ($self, $abbr) = @_;
 
@@ -127,7 +153,6 @@ sub _today_game {
             return $_;
         }
     }
-
     return undef;
 }
 sub _args {
