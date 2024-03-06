@@ -106,7 +106,7 @@ for my $team (@teams) {
                     my $game_location = $nhl->game_location($team);
                     my $message_game_date = $dt_game->strftime("%Y-%m-%d %H%M");
                     my $message = sprintf(
-                        "$team is playing $opponent in $game_location in less than " .
+                        "$team are playing $opponent in $game_location in less than " .
                         "$alert_time minutes at $message_game_date hrs",
                     );
                     print "$message\n";
