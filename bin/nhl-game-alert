@@ -43,7 +43,15 @@ BEGIN {
     }
 }
 
-my ($help, @alert_times, @recipients, @teams, $cache_reset, $display_shm);
+my (
+    $help,
+    @alert_times,
+    @recipients,
+    @teams,
+    $cache_reset,
+    $cache_destroy
+    $display_shm,
+);
 
 GetOptions(
     "help|h"        => \$help,
@@ -52,6 +60,7 @@ GetOptions(
     "team|t=s"      => \@teams,
     "cache|c"       => \$cache_reset,
     "shm|s"         => \$display_shm,
+    "destroy|d"     => \$cache_destroy,
 );
 
 if (! $display_shm) {
@@ -65,6 +74,15 @@ my $shm = tie my %sent_cache, 'IPC::Shareable', {
     create  => 1,
     tidy    => 1,
 };
+
+if ($cache_destroy) {
+    printf(
+        "Destroying cache with key %s. Exiting...\n",
+        $shm->hex_key
+    );
+    $shm->destroy;
+    exit;
+}
 
 if ($display_shm) {
     my $json = JSON->new;
@@ -194,6 +212,7 @@ Options:
 -t | --team         Mandatory, Strings: Team you want to check for. Can be supplied multiple times
 -c | --cache        Reset the cache that stores whether we've sent alerts or not
 -s | --shm          Print the details of the shared memory object to STDOUT in JSON format
+-d | --destroy      Destroy the entire shared memory cache
 
 EOF
 

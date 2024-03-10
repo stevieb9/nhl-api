@@ -7,19 +7,12 @@ use Carp qw(croak);
 use Data::Dumper;
 use DateTime;
 use DateTime::Format::ISO8601;
-use File::HomeDir;
 use HTTP::Request;
 use JSON;
 use LWP::UserAgent;
 use POSIX qw(strftime);
 
 our $VERSION = '0.01';
-
-my $home_dir;
-
-BEGIN {
-    $home_dir = File::HomeDir->my_home;
-}
 
 my $ua = LWP::UserAgent->new(
     agent => "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15"
@@ -28,12 +21,8 @@ my $url = 'https://api-web.nhle.com/';
 my $alt_url = 'https://api.nhle.com/';
 
 sub new {
-    my ($class, %args) = @_;
-
+    my ($class) = @_;
     my $self = bless {}, $class;
-
-    $self->_args(\%args);
-
     return $self;
 }
 sub fetch {
@@ -63,28 +52,23 @@ sub fetch {
         return undef;
     }
 }
-sub teams {
-    my ($self) = @_;
-
-    return $self->{teams} if exists $self->{teams};
-
-    my $team_data = $self->fetch("stats/rest/en/team", $alt_url)->{data};
-
-    for (@$team_data) {
-        $self->{teams}{$_->{fullName}} = {
-            id   => $_->{id},
-            abbr => $_->{triCode},
-        };
-    }
-
-    return $self->{teams};
-}
 sub game_location {
     my ($self, $team_name) = @_;
 
     my $game_data = $self->_today_game($team_name);
     my $game_location = $game_data->{homeTeam}{placeName}{default};
     return $game_location;
+}
+sub game_time {
+    my ($self, $team_name) = @_;
+
+    my $today_game = $self->_today_game($team_name);
+
+    if ($today_game) {
+        return $today_game->{startTimeUTC};
+    }
+
+    return undef;
 }
 sub opponent {
     my ($self, $team_name) = @_;
@@ -105,6 +89,17 @@ sub opponent {
 
     return $self->team_abbr_to_name($opponent_abbr);
 }
+sub team_abbr {
+    my ($self, $team_name) = @_;
+
+    if (! $team_name) {
+        croak "team_abbr() requires a Team Name sent in...";
+    }
+
+    my $teams = $self->teams;
+
+    return $teams->{$team_name}{abbr};
+}
 sub team_abbr_to_name {
     my ($self, $abbr) = @_;
 
@@ -118,28 +113,23 @@ sub team_abbr_to_name {
 
     return $self->{abbrs}{$abbr};
 }
-sub team_abbr {
-    my ($self, $team_name) = @_;
+sub teams {
+    my ($self) = @_;
 
-    if (! $team_name) {
-        croak "team_abbr() requires a Team Name sent in...";
+    return $self->{teams} if exists $self->{teams};
+
+    my $team_data = $self->fetch("stats/rest/en/team", $alt_url)->{data};
+
+    for (@$team_data) {
+        $self->{teams}{$_->{fullName}} = {
+            id   => $_->{id},
+            abbr => $_->{triCode},
+        };
     }
 
-    my $teams = $self->teams;
-
-    return $teams->{$team_name}{abbr};
+    return $self->{teams};
 }
-sub game_time {
-    my ($self, $team_name) = @_;
 
-    my $today_game = $self->_today_game($team_name);
-
-    if ($today_game) {
-        return $today_game->{startTimeUTC};
-    }
-
-    return undef;
-}
 sub _today_game {
     my ($self, $team_name) = @_;
 
@@ -154,9 +144,6 @@ sub _today_game {
         }
     }
     return undef;
-}
-sub _args {
-
 }
 sub _uri {
     my ($self, $want_uri, $base_url) = @_;
