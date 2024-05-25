@@ -49,7 +49,7 @@ my (
     @recipients,
     @teams,
     $cache_reset,
-    $cache_destroy
+    $cache_destroy,
     $display_shm,
 );
 
