@@ -49,7 +49,7 @@ my (
     @recipients,
     @teams,
     $cache_reset,
-    $cache_destroy
+    $cache_destroy,
     $display_shm,
 );
 
@@ -63,7 +63,7 @@ GetOptions(
     "destroy|d"     => \$cache_destroy,
 );
 
-if (! $display_shm) {
+if (! $display_shm && ! $cache_destroy) {
     help() if ! scalar @alert_times;
     help() if ! scalar @recipients;
     help() if ! scalar @teams;
@@ -78,9 +78,10 @@ my $shm = tie my %sent_cache, 'IPC::Shareable', {
 if ($cache_destroy) {
     printf(
         "Destroying cache with key %s. Exiting...\n",
-        $shm->hex_key
+        $shm->seg->key_hex
     );
-    $shm->destroy;
+    $shm->remove;
+    IPC::Shareable::clean_up_all();
     exit;
 }
 
