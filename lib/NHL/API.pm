@@ -129,6 +129,26 @@ sub teams {
 
     return $self->{teams};
 }
+sub team_names {
+    my ($self) = @_;
+    my $year = strftime("%Y", localtime);
+    $year--;
+
+    return $self->{nhl_team_list} if exists $self->{nhl_team_list};
+
+    my $nhl_team_data = $self->fetch("v1/standings/$year-12-31");
+    my $standings_entries = $nhl_team_data->{standings};
+
+    my @team_names;
+
+    for (@$standings_entries) {
+        push @team_names, $_->{teamName}{default};
+    }
+
+    $self->{nhl_team_list} = \@team_names;
+
+    return $self->{nhl_team_list};
+}
 
 sub _today_game {
     my ($self, $team_name) = @_;
@@ -148,6 +168,7 @@ sub _today_game {
 sub _uri {
     my ($self, $want_uri, $base_url) = @_;
     my $uri = $base_url . $want_uri;
+
     return $uri;
 }
 
