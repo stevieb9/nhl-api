@@ -13,6 +13,8 @@ use NHL::API;
 use POSIX qw(strftime);
 use SMS::Send;
 
+binmode(STDOUT, ":utf8");
+
 # Twilio API config format (~/twilio_api.json)
 # {
 #     "_accountsid": "Twilio Account ID hash",
@@ -48,6 +50,7 @@ my (
     @alert_times,
     @recipients,
     @teams,
+    $team_names,
     $cache_reset,
     $cache_destroy,
     $display_shm,
@@ -58,12 +61,13 @@ GetOptions(
     "alert|a=s"     => \@alert_times,
     "recipient|r=s" => \@recipients,
     "team|t=s"      => \@teams,
+    "names|n"       => \$team_names,
     "cache|c"       => \$cache_reset,
     "shm|s"         => \$display_shm,
     "destroy|d"     => \$cache_destroy,
 );
 
-if (! $display_shm) {
+if (! $display_shm && ! $team_names) {
     help() if ! scalar @alert_times;
     help() if ! scalar @recipients;
     help() if ! scalar @teams;
@@ -92,6 +96,19 @@ if ($display_shm) {
 }
 
 my $nhl = NHL::API->new;
+
+if ($team_names) {
+
+    print "\n";
+
+    for (sort @{ $nhl->team_names }) {
+        print "$_\n";
+    }
+
+    print "\n";
+
+    exit;
+}
 
 @alert_times = sort { $b <=> $a } @alert_times;
 
@@ -206,13 +223,19 @@ Usage: nhl-game-alert <OPTIONS>
 
 Options:
 
+Non-operational:
+
 -h | --help         Print this help message
+-n | --names        Print the list of team names for use with --team
+-s | --shm          Print the details of the shared memory object to STDOUT in JSON format
+-d | --destroy      Destroy the entire shared memory cache
+
+Operational:
+
 -a | --alert        Mandatory, Strings: Minutes before game to alert at. Can be supplied multiple times
 -r | --recipient    Mandatory, Strings: Country code plus phone number to send the alert to. Can be supplied multiple times
 -t | --team         Mandatory, Strings: Team you want to check for. Can be supplied multiple times
 -c | --cache        Reset the cache that stores whether we've sent alerts or not
--s | --shm          Print the details of the shared memory object to STDOUT in JSON format
--d | --destroy      Destroy the entire shared memory cache
 
 EOF
 
